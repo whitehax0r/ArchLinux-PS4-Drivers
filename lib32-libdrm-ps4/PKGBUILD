@@ -1,0 +1,52 @@
+# Maintainer: Laurent Carlier <lordheavym@gmail.com>
+# Contributor: Jan de Groot <jgc@archlinux.org>
+# PS4 Maintainer: Whitehax0r
+
+pkgname=lib32-libdrm-ps4
+_pkgbasename=libdrm
+pkgver=2.4.113
+pkgrel=1
+pkgdesc="Userspace interface to kernel DRM services (32-bit)"
+url="https://dri.freedesktop.org/"
+arch=(x86_64)
+license=('custom')
+depends=('libdrm-ps4' 'lib32-libpciaccess')
+makedepends=('valgrind' 'meson')
+checkdepends=('lib32-cairo')
+provides=('lib32-libdrm')
+conflicts=('lib32-libdrm')
+source=(https://dri.freedesktop.org/${_pkgbasename}/${_pkgbasename}-${pkgver}.tar.xz
+	libdrm.patch
+	COPYING)
+sha512sums=('SKIP'
+            'SKIP'
+            'SKIP')
+
+prepare() {
+  cd $_pkgbasename-$pkgver
+	patch -Np1 < ../libdrm.patch
+}
+
+build() {
+  export CC="gcc -m32"
+  export CXX="g++ -m32"
+  export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+
+  arch-meson $_pkgbasename-$pkgver build \
+    --libdir=/usr/lib32 \
+    -Dudev=false \
+    -Dvalgrind=disabled
+  ninja -C build
+}
+
+check() {
+  cd build
+  meson test
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+  rm -rf "${pkgdir}"/usr/{include,share,bin}
+  mkdir -p "$pkgdir/usr/share/licenses"
+  ln -s $_pkgbasename "$pkgdir/usr/share/licenses/$pkgname"
+}
